@@ -9,7 +9,7 @@ Create a new world default: stopped
     - `start`: boolean(optional)
 - RES BODY
     - `200`
-        - `id`: integer
+        - `id`: str
         - `ok`: boolean(true)
     - `400` -> client error
         - `error`: string
@@ -23,7 +23,7 @@ Get all worlds
 - RES BODY
     - `200`
         - array of
-            - `id`: integer
+            - `id`: str
             - `name`: string
             - `x`: integer
             - `y`: integer
