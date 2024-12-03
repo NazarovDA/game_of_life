@@ -105,35 +105,38 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			break
 		}
-		log.Printf("Received: %s", message)
+		log.Printf("Received: %x", message)
 
-		if binary.LittleEndian.Uint32(message) == 0x1000 {
+		if binary.LittleEndian.Uint16(message) == 0x0000 {
 			currentGame.Stop()
 			ws.WriteMessage(websocket.BinaryMessage, binary.LittleEndian.AppendUint16([]byte{}, 0x8000))
 			continue
 		}
 
-		if binary.LittleEndian.Uint32(message) == 0x0001 {
+		if binary.LittleEndian.Uint16(message) == 0x0001 {
 			currentGame.Start()
 			ws.WriteMessage(websocket.BinaryMessage, binary.LittleEndian.AppendUint16([]byte{}, 0x8001))
 			continue
 		}
 
-		if binary.LittleEndian.Uint32(message[:6]) == 0x000200 {
-			game, err := g.CreateFromBinaryData(message[5:])
+		if binary.LittleEndian.Uint16(message) == 0x0002 {
+			// TODO: flag
+			game, err := g.CreateFromBinaryData(message[3:])
 			if err != nil {
 				data := binary.LittleEndian.AppendUint16([]byte{}, 0x88ff)
-				jsonerror, _ := json.Marshal(err)
+				jsonerror, _ := json.Marshal(err.Error())
+				log.Println(err)
 				data = append(data, jsonerror...)
 
 				ws.WriteMessage(websocket.BinaryMessage, data)
 				continue
 			}
 			Games = append(Games, game)
+			game.AddListener(ws)
 			go game.RunGame()
 		}
 
-		ws.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		ws.SetReadDeadline(time.Now().Add(60000 * time.Millisecond))
 	}
 }
 

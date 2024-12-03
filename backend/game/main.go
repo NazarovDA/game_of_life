@@ -84,15 +84,15 @@ func (p *GameProcess) StartGameProcess() {
 }
 
 func CreateFromBinaryData(data []byte) (*GameProcess, error) {
-	if len(data)%8 != 0 {
+	if len(data) % 8 != 0 {
 		return nil, fmt.Errorf("invalid data length, must be a multiple of 8")
 	}
 
 	p := &GameProcess{}
 
 	for i := 0; i < len(data); i += 8 {
-		x := int(binary.BigEndian.Uint32(data[i : i+4]))
-		y := int(binary.BigEndian.Uint32(data[i+4 : i+8]))
+		x := int(binary.LittleEndian.Uint32(data[i : i+4]))
+		y := int(binary.LittleEndian.Uint32(data[i+4 : i+8]))
 
 		if x >= len(p.currentGeneration) {
 			for len(p.currentGeneration) <= x {
