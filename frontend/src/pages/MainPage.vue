@@ -156,7 +156,7 @@ async function createAndConnectToWorld() {
       </table>
 
       <button @click="toggleNewWorldEditor" :disabled="state.createToggled">New</button>
-      <button @click="connectToWorld({ id: 1, x: 100, y: 100 })" :disabled="state.createToggled">_CONN</button>
+      <!-- <button @click="connectToWorld({ id: 1, x: 100, y: 100 })" :disabled="state.createToggled">_CONN</button> -->
     </template>
 
   </div>

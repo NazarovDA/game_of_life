@@ -10,7 +10,7 @@ export class API {
   });
 
   async createWorld(options: CreateWorld['request']['body']): Promise<CreateWorld['response']> {
-    const response = await fetch(`${API.root}/worlds`, {
+    const response = await fetch(`${API.root}/world`, {
       method: 'POST',
       headers: API.headers,
       body: JSON.stringify(options),
@@ -28,7 +28,7 @@ export class API {
   }
 
   async getWorlds(): Promise<GetWorlds['response']> {
-    const response = await fetch(`${API.root}/worlds`, {
+    const response = await fetch(`${API.root}/world`, {
       method: 'GET',
       headers: API.headers,
     });
