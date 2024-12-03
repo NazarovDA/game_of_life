@@ -7,6 +7,7 @@ import (
 	"time"
 
 	g "github.com/NazarovDA/game_of_life/game"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
@@ -60,6 +61,9 @@ func PostWorld(w http.ResponseWriter, r *http.Request) {
 
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 func WsHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,14 +74,15 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("EBAT")
 	defer ws.Close()
 
-	gameId := r.PathValue("id")
-	
+	vars := mux.Vars(r)
+	gameId := vars["id"]
+
 	log.Println(gameId)
 
 	for _, game := range Games {
 		if game.GetId() == gameId {
 			game.AddListener(ws)
-			
+
 			log.Println(game.Id)
 			break
 		}
@@ -118,21 +123,20 @@ func headers(next http.Handler) http.Handler {
 
 func main() {
 	Games = make([]*g.GameProcess, 0)
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /world", PostWorld)
-	mux.HandleFunc("GET /world", func(w http.ResponseWriter, r *http.Request) {
+	r := mux.NewRouter()
+	r.Use(headers)
+	r.HandleFunc("POST /world", PostWorld)
+	r.HandleFunc("GET /world", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(GetResponse{
 			Items: Games,
 			Ok:    true,
 		})
 	})
-	mux.HandleFunc("OPTIONS /world", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("OPTIONS /world", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("/world/{id}", WsHandler)
+	r.HandleFunc("/world/{id}", WsHandler)
 
-	handler := headers(mux)
-
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
