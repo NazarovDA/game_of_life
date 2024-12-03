@@ -23,6 +23,11 @@ type GamePostResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+type GetResponse struct {
+	Items []*g.GameProcess `json:"items"`
+	Ok    bool             `json:"ok"`
+}
+
 var Games []*g.GameProcess
 
 func PostWorld(w http.ResponseWriter, r *http.Request) {
@@ -93,9 +98,34 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	http.HandleFunc("POST /world", PostWorld)
-	http.HandleFunc("/world/{id}", WsHandler)
+func headers(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Add("Access-Control-Max-Age", "86400")
+		w.Header().Add("Access-Control-Allow-Credentials", "true")
+		next.ServeHTTP(w, r)
+	})
+}
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+func main() {
+	Games = make([]*g.GameProcess, 0)
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /world", PostWorld)
+	mux.HandleFunc("GET /world", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(GetResponse{
+			Items: Games,
+			Ok:    true,
+		})
+	})
+	mux.HandleFunc("OPTIONS /world", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/world/{id}", WsHandler)
+
+	handler := headers(mux)
+
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }

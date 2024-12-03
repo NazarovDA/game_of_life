@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/google/uuid"
@@ -11,23 +12,23 @@ import (
 
 func NewGame(name string, x uint32, y uint32, isRunning bool) *GameProcess {
 	return &GameProcess{
-		id:        newId(),
-		name:      name,
-		x:         x,
-		y:         y,
-		isRunning: isRunning,
+		Id:        newId(),
+		Name:      name,
+		X:         x,
+		Y:         y,
+		IsRunning: isRunning,
 	}
 }
 
 type GameProcess struct {
-	id                string
-	name              string
-	x                 uint32
-	y                 uint32
-	isRunning         bool
+	Id                string `json:"id"`
+	Name              string `json:"name"`
+	X                 uint32 `json:"x"`
+	Y                 uint32 `json:"y"`
+	IsRunning         bool   `json:"isRunning"`
 	currentGeneration [][]bool
 	lock              sync.Mutex
-	currentEpoch      uint64
+	CurrentEpoch      uint64 `json:"epoch"`
 	reason            string
 
 	connectedSockets []*websocket.Conn
@@ -44,17 +45,17 @@ func (p *GameProcess) RemoveListener(l *websocket.Conn) {
 		}
 	}
 }
-func (p *GameProcess) GetId() string    { return p.id }
-func (p *GameProcess) IsRunning() bool  { return p.isRunning }
-func (p *GameProcess) GetEpoch() uint64 { return p.currentEpoch }
+func (p *GameProcess) GetId() string    { return p.Id }
+func (p *GameProcess) GetEpoch() uint64 { return p.CurrentEpoch }
 func (p *GameProcess) SetGeneration(generation [][]bool) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.currentGeneration = generation
+	log.Printf("%s:%d", p.Id, p.CurrentEpoch)
 	for _, socket := range p.connectedSockets {
 		var data []byte
 		binary.LittleEndian.AppendUint16(data, 0x8002)                 // world state
-		binary.LittleEndian.AppendUint64(data, uint64(p.currentEpoch)) // epoch
+		binary.LittleEndian.AppendUint64(data, uint64(p.CurrentEpoch)) // epoch
 		data = append(data, 0)
 		for rowI, row := range p.currentGeneration {
 			for colI, col := range row {
@@ -72,8 +73,8 @@ func (p *GameProcess) SetGeneration(generation [][]bool) {
 }
 
 func (p *GameProcess) StartGameProcess() {
-	if p.isRunning {
-		p.isRunning = true
+	if p.IsRunning {
+		p.IsRunning = true
 	}
 }
 
@@ -90,7 +91,7 @@ func CreateFromBinaryData(data []byte) (*GameProcess, error) {
 
 		if x >= len(p.currentGeneration) {
 			for len(p.currentGeneration) <= x {
-				p.currentGeneration = append(p.currentGeneration, make([]bool, p.y))
+				p.currentGeneration = append(p.currentGeneration, make([]bool, p.Y))
 			}
 		}
 		if y >= len(p.currentGeneration[x]) {
@@ -107,11 +108,11 @@ func CreateFromBinaryData(data []byte) (*GameProcess, error) {
 }
 
 func (p *GameProcess) RunGame() {
-	for p.isRunning {
+	for p.IsRunning {
 		p.lock.Lock()
 		err := p.nextGeneration()
 		if err != nil {
-			p.isRunning = false
+			p.IsRunning = false
 			p.reason = err.Error()
 			return
 		}
@@ -188,7 +189,7 @@ func (p *GameProcess) nextGeneration() error {
 
 	p.SetGeneration(nextGrid)
 
-	p.currentEpoch++
+	p.CurrentEpoch++
 
 	return nil
 }
