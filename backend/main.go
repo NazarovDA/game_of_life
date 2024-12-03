@@ -67,13 +67,18 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	log.Println("EBAT")
 	defer ws.Close()
 
 	gameId := r.PathValue("id")
+	
+	log.Println(gameId)
 
 	for _, game := range Games {
 		if game.GetId() == gameId {
 			game.AddListener(ws)
+			
+			log.Println(game.Id)
 			break
 		}
 	}
@@ -105,6 +110,8 @@ func headers(next http.Handler) http.Handler {
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Add("Access-Control-Max-Age", "86400")
 		w.Header().Add("Access-Control-Allow-Credentials", "true")
+		log.Println(r.RequestURI)
+		log.Println(r.URL)
 		next.ServeHTTP(w, r)
 	})
 }

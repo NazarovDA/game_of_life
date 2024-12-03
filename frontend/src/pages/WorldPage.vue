@@ -49,6 +49,7 @@ function initNetworking() {
 }
 
 watch(() => route.query, init);
+init();
 
 const world = ref<WorldState>(parsePacket(_generateWorldPacketFromServer(0, state.w, state.h, 0n)) as WorldState);
 

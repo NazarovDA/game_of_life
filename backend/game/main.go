@@ -11,12 +11,17 @@ import (
 )
 
 func NewGame(name string, x uint32, y uint32, isRunning bool) *GameProcess {
+	field := make([][]bool, x)
+	for i := range field {
+		field[i] = make([]bool, y)
+	}
 	return &GameProcess{
 		Id:        newId(),
 		Name:      name,
 		X:         x,
 		Y:         y,
 		IsRunning: isRunning,
+		currentGeneration: field,
 	}
 }
 

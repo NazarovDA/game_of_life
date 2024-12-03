@@ -25,7 +25,7 @@ let demoInterval = setInterval(() => {
 
 const state = reactive({
   endpoint: 'http://localhost:8080',
-  wsEndpoint: 'ws://localhost:8080/ws',
+  wsEndpoint: 'ws://localhost:8080/world',
   endpointsLocked: false,
   isLoading: false,
   createToggled: false,
@@ -172,9 +172,8 @@ async function createAndConnectToWorld() {
 .semi-transparent {
   border-radius: 4px;
   box-shadow: #000 0 0 2px;
-  background-color: #0002;
-  color: #000;
-  text-shadow: #fff 1px 1px 1px;
+  background-color: #0008;
+  color: #fff;
 }
 .worlds {
   position: absolute;
