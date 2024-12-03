@@ -1,27 +1,74 @@
-package main
+package game
 
 import (
 	"encoding/binary"
 	"fmt"
 	"sync"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
+func NewGame(name string, x uint32, y uint32, isRunning bool) *GameProcess {
+	return &GameProcess{
+		id:        newId(),
+		name:      name,
+		x:         x,
+		y:         y,
+		isRunning: isRunning,
+	}
+}
+
 type GameProcess struct {
-	x                 int
-	y                 int
+	id                string
+	name              string
+	x                 uint32
+	y                 uint32
 	isRunning         bool
 	currentGeneration [][]bool
 	lock              sync.Mutex
 	currentEpoch      uint64
 	reason            string
+
+	connectedSockets []*websocket.Conn
 }
 
+func (p *GameProcess) AddListener(l *websocket.Conn) {
+	p.connectedSockets = append(p.connectedSockets, l)
+}
+func (p *GameProcess) RemoveListener(l *websocket.Conn) {
+	for i, s := range p.connectedSockets {
+		if s == l {
+			p.connectedSockets = append(p.connectedSockets[:i], p.connectedSockets[i+1:]...)
+			return
+		}
+	}
+}
+func (p *GameProcess) GetId() string    { return p.id }
 func (p *GameProcess) IsRunning() bool  { return p.isRunning }
 func (p *GameProcess) GetEpoch() uint64 { return p.currentEpoch }
 func (p *GameProcess) SetGeneration(generation [][]bool) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.currentGeneration = generation
+	for _, socket := range p.connectedSockets {
+		var data []byte
+		binary.LittleEndian.AppendUint16(data, 0x8002)                 // world state
+		binary.LittleEndian.AppendUint64(data, uint64(p.currentEpoch)) // epoch
+		data = append(data, 0)
+		for rowI, row := range p.currentGeneration {
+			for colI, col := range row {
+				if col {
+					binary.LittleEndian.AppendUint16(data, uint16(rowI))
+					binary.LittleEndian.AppendUint16(data, uint16(colI))
+				}
+			}
+		}
+		err := socket.WriteMessage(websocket.BinaryMessage, data)
+		if err != nil {
+			fmt.Println("Error sending message:", err)
+		}
+	}
 }
 
 func (p *GameProcess) StartGameProcess() {
@@ -59,7 +106,7 @@ func CreateFromBinaryData(data []byte) (*GameProcess, error) {
 	return p, nil
 }
 
-func (p *GameProcess) runGame() {
+func (p *GameProcess) RunGame() {
 	for p.isRunning {
 		p.lock.Lock()
 		err := p.nextGeneration()
@@ -145,5 +192,12 @@ func (p *GameProcess) nextGeneration() error {
 
 	return nil
 }
-func (p *GameProcess) logEpochToDB() {
+
+func newId() string {
+	val, err := uuid.NewV7()
+	if err != nil {
+		fmt.Println("Error generating UUID:", err)
+		return ""
+	}
+	return val.String()
 }
