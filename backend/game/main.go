@@ -16,11 +16,11 @@ func NewGame(name string, x uint32, y uint32, isRunning bool) *GameProcess {
 		field[i] = make([]bool, y)
 	}
 	return &GameProcess{
-		Id:        newId(),
-		Name:      name,
-		X:         x,
-		Y:         y,
-		IsRunning: isRunning,
+		Id:                newId(),
+		Name:              name,
+		X:                 x,
+		Y:                 y,
+		IsRunning:         isRunning,
 		currentGeneration: field,
 	}
 }
@@ -197,6 +197,13 @@ func (p *GameProcess) nextGeneration() error {
 	p.CurrentEpoch++
 
 	return nil
+}
+
+func (p *GameProcess) Start() {
+	p.IsRunning = true
+}
+func (p *GameProcess) Stop() {
+	p.IsRunning = false
 }
 
 func newId() string {

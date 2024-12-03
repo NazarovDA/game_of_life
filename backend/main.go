@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -79,10 +80,12 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(gameId)
 
+	var currentGame *g.GameProcess
+
 	for _, game := range Games {
 		if game.GetId() == gameId {
 			game.AddListener(ws)
-
+			currentGame = game
 			log.Println(game.Id)
 			break
 		}
@@ -103,6 +106,32 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		log.Printf("Received: %s", message)
+
+		if binary.LittleEndian.Uint32(message) == 0x1000 {
+			currentGame.Stop()
+			ws.WriteMessage(websocket.BinaryMessage, binary.LittleEndian.AppendUint16([]byte{}, 0x8000))
+			continue
+		}
+
+		if binary.LittleEndian.Uint32(message) == 0x0001 {
+			currentGame.Start()
+			ws.WriteMessage(websocket.BinaryMessage, binary.LittleEndian.AppendUint16([]byte{}, 0x8001))
+			continue
+		}
+
+		if binary.LittleEndian.Uint32(message[:6]) == 0x000200 {
+			game, err := g.CreateFromBinaryData(message[5:])
+			if err != nil {
+				data := binary.LittleEndian.AppendUint16([]byte{}, 0x88ff)
+				jsonerror, _ := json.Marshal(err)
+				data = append(data, jsonerror...)
+
+				ws.WriteMessage(websocket.BinaryMessage, data)
+				continue
+			}
+			Games = append(Games, game)
+			go game.RunGame()
+		}
 
 		ws.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	}
@@ -125,17 +154,17 @@ func main() {
 	Games = make([]*g.GameProcess, 0)
 	r := mux.NewRouter()
 	r.Use(headers)
-	r.HandleFunc("POST /world", PostWorld)
-	r.HandleFunc("GET /world", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/world", PostWorld).Methods("POST")
+	r.HandleFunc("/world", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(GetResponse{
 			Items: Games,
 			Ok:    true,
 		})
-	})
-	r.HandleFunc("OPTIONS /world", func(w http.ResponseWriter, r *http.Request) {
+	}).Methods("GET")
+	r.HandleFunc("/world", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-	})
+	}).Methods("OPTIONS")
 	r.HandleFunc("/world/{id}", WsHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
