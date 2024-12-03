@@ -1,0 +1,16 @@
+services:
+  wsclient:
+    build:
+     context: ./backend
+     dockerfile: dockerfile
+    ports:
+     - "8080:8080"
+    restart: always
+  front:
+   build:
+    context: ./frontend
+    dockerfile: dockerfile
+   ports:
+    - "3000:3000"
+    - "5173:5173"
+   restart: always
