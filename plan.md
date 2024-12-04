@@ -39,7 +39,7 @@ Get all worlds
 one may change the map when game is stopped  
 #### data structure
 1. Client -> Server
-- `0x1000` - stop world
+- `0x0000` - stop world
 - `0x0001` - start world    
 - `0x0002` - change world
     - `00` - flag `0x000200`
