@@ -123,12 +123,10 @@ export class WebSocketAPI {
   private clients: WebSocket[] = [];
   
   addClient(socket: WebSocket) {
-    console.log('addClient');
     this.clients.push(socket);
     this.bindSocketEvents(socket);
   }
   removeClient(socket: WebSocket, autoClose = true) {
-    console.log('removeClient');
     const index = this.clients.indexOf(socket);
     if (index !== -1) {
       this.clients.splice(index, 1);
@@ -149,7 +147,6 @@ export class WebSocketAPI {
   }
   private onOpen(_event: Event) {}
   private onClose(_event: CloseEvent) {
-    console.log('onClose', _event);
     this.removeClient(_event.target, false);
   }
 

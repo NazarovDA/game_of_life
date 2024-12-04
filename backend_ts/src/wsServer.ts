@@ -21,6 +21,7 @@ function getIdFromURL(url?: string) {
 export function attachWebSocketServer(httpServer: http.Server) {
   wss = new WebSocketServer({ noServer: true });
 
+  // NOTE: because `socket.url` is `null`, add client to game code was moved directly into upgrade handler
   // wss.on('connection', (socket) => {
   //   const id = getIdFromURL(socket.url);
   //   console.log('conn', socket., id);
@@ -38,7 +39,6 @@ export function attachWebSocketServer(httpServer: http.Server) {
 
   httpServer.on('upgrade', (request, socket, head) => {
     const id = getIdFromURL(request.url);
-    console.log('upgrade', id);
     if (!id) {
       socket.destroy();
       return;
